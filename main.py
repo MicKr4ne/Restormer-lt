@@ -55,15 +55,22 @@ def save_loop(net, data_loader, num_iter):
 
 if __name__ == '__main__':
     args = parse_args()
-    test_dataset = RainDataset(args.data_path, args.data_name, 'test')
-    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=args.workers)
+    test_dataset = None
+    test_loader = None
+    
 
     results, best_psnr, best_ssim = {'PSNR': [], 'SSIM': []}, 0.0, 0.0
     model = Restormer(args.num_blocks, args.num_heads, args.channels, args.num_refinement, args.expansion_factor).cuda()
     if args.model_file:
+        # load the test dataset
+        test_dataset = RainDataset(args.data_path, args.data_name, 'test')
+        test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=args.workers)
         model.load_state_dict(torch.load(args.model_file))
         save_loop(model, test_loader, 1)
     else:
+        # load validation dataset
+        test_dataset = RainDataset(args.data_path, args.data_name, 'val')
+        test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=args.workers)
         optimizer = AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
         lr_scheduler = CosineAnnealingLR(optimizer, T_max=args.num_iter, eta_min=1e-6)
         total_loss, total_num, results['Loss'], i = 0.0, 0, [], 0
